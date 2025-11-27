@@ -31,14 +31,20 @@ globalConfig.endpoints.metrics = {
 	includeNodeTypeLabel: false,
 	includeWorkflowIdLabel: false,
 	includeWorkflowNameLabel: false,
+	includeNodeIdLabel: false,
+	includeNodeNameLabel: false,
 	includeApiPathLabel: true,
 	includeApiMethodLabel: true,
 	includeApiStatusCodeLabel: true,
 	includeQueueMetrics: true,
+	includeNodeMetrics: false,
+	includeWorkflowMetrics: false,
 	queueMetricsInterval: 20,
 	activeWorkflowCountInterval: 60,
 	includeWorkflowStatistics: false,
 	workflowStatisticsInterval: 300,
+	nodeExecutionTimeBuckets: [0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 40, 60, 120, 300, 600],
+	workflowExecutionTimeBuckets: [0.5, 1, 2, 5, 10, 20, 40, 60, 120, 300, 600, 900],
 };
 
 const server = setupTestServer({ endpointGroups: ['metrics'] });
@@ -443,5 +449,169 @@ describe('PrometheusMetricsService', () => {
 		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_users'));
 		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_workflows'));
 		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_credentials'));
+	});
+
+	it('should return workflow execution metrics if enabled', async () => {
+		/**
+		 * Arrange
+		 */
+		prometheusService.enableMetric('workflow');
+		await prometheusService.init(server.app);
+
+		/**
+		 * Act
+		 */
+		const response = await agent.get('/metrics');
+
+		/**
+		 * Assert
+		 */
+		expect(response.status).toEqual(200);
+		expect(response.type).toEqual('text/plain');
+
+		const lines = toLines(response);
+
+		expect(lines).toContainEqual(expect.stringContaining('n8n_test_workflow_success_total'));
+		expect(lines).toContainEqual(expect.stringContaining('n8n_test_workflow_failed_total'));
+		expect(lines).toContainEqual(
+			expect.stringContaining('n8n_test_workflow_execution_time_seconds'),
+		);
+	});
+
+	it('should not return workflow execution metrics if disabled', async () => {
+		/**
+		 * Arrange
+		 */
+		prometheusService.disableMetric('workflow');
+		await prometheusService.init(server.app);
+
+		/**
+		 * Act
+		 */
+		const response = await agent.get('/metrics');
+
+		/**
+		 * Assert
+		 */
+		expect(response.status).toEqual(200);
+		expect(response.type).toEqual('text/plain');
+
+		const lines = toLines(response);
+
+		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_workflow_success_total'));
+		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_workflow_failed_total'));
+		expect(lines).not.toContainEqual(
+			expect.stringContaining('n8n_test_workflow_execution_time_seconds'),
+		);
+	});
+
+	it('should include workflow labels if enabled', async () => {
+		/**
+		 * Arrange
+		 */
+		prometheusService.enableMetric('workflow');
+		prometheusService.enableLabels(['workflowId', 'workflowName']);
+		await prometheusService.init(server.app);
+
+		/**
+		 * Act
+		 */
+		const response = await agent.get('/metrics');
+
+		/**
+		 * Assert
+		 */
+		expect(response.status).toEqual(200);
+		expect(response.type).toEqual('text/plain');
+
+		const lines = toLines(response);
+
+		// Check that the metric has label names defined
+		const helpLine = lines.find((line) => line.includes('# HELP n8n_test_workflow_success_total'));
+		expect(helpLine).toBeDefined();
+	});
+
+	it('should return node execution metrics if enabled', async () => {
+		/**
+		 * Arrange
+		 */
+		prometheusService.enableMetric('node');
+		await prometheusService.init(server.app);
+
+		/**
+		 * Act
+		 */
+		const response = await agent.get('/metrics');
+
+		/**
+		 * Assert
+		 */
+		expect(response.status).toEqual(200);
+		expect(response.type).toEqual('text/plain');
+
+		const lines = toLines(response);
+
+		expect(lines).toContainEqual(expect.stringContaining('n8n_test_node_success_total'));
+		expect(lines).toContainEqual(expect.stringContaining('n8n_test_node_failed_total'));
+		expect(lines).toContainEqual(expect.stringContaining('n8n_test_node_execution_time_seconds'));
+	});
+
+	it('should not return node execution metrics if disabled', async () => {
+		/**
+		 * Arrange
+		 */
+		prometheusService.disableMetric('node');
+		await prometheusService.init(server.app);
+
+		/**
+		 * Act
+		 */
+		const response = await agent.get('/metrics');
+
+		/**
+		 * Assert
+		 */
+		expect(response.status).toEqual(200);
+		expect(response.type).toEqual('text/plain');
+
+		const lines = toLines(response);
+
+		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_node_success_total'));
+		expect(lines).not.toContainEqual(expect.stringContaining('n8n_test_node_failed_total'));
+		expect(lines).not.toContainEqual(
+			expect.stringContaining('n8n_test_node_execution_time_seconds'),
+		);
+	});
+
+	it('should include node labels if enabled', async () => {
+		/**
+		 * Arrange
+		 */
+		prometheusService.enableMetric('node');
+		prometheusService.enableLabels([
+			'nodeType',
+			'nodeName',
+			'nodeId',
+			'workflowId',
+			'workflowName',
+		]);
+		await prometheusService.init(server.app);
+
+		/**
+		 * Act
+		 */
+		const response = await agent.get('/metrics');
+
+		/**
+		 * Assert
+		 */
+		expect(response.status).toEqual(200);
+		expect(response.type).toEqual('text/plain');
+
+		const lines = toLines(response);
+
+		// Check that the metric has label names defined
+		const helpLine = lines.find((line) => line.includes('# HELP n8n_test_node_success_total'));
+		expect(helpLine).toBeDefined();
 	});
 });

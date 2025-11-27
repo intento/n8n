@@ -522,9 +522,9 @@ export class PrometheusMetricsService {
 				const nodeLabels: Record<string, string> = this.buildWorkflowLabels(payload);
 
 				if (this.includes.labels.nodeType) {
-					nodeLabels.node_type = String(
-						(payload?.nodeType ?? 'unknown').replace('n8n-nodes-', '').replace(/\./g, '_'),
-					);
+					nodeLabels.node_type = ((payload?.nodeType ?? 'unknown') as string)
+						.replace('n8n-nodes-', '')
+						.replace(/\./g, '_');
 				}
 				if (this.includes.labels.nodeName) {
 					nodeLabels.node_name = String(payload?.nodeName ?? 'unknown');

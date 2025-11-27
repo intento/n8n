@@ -7,8 +7,8 @@ import type express from 'express';
 import promBundle from 'express-prom-bundle';
 import { DateTime } from 'luxon';
 import { InstanceSettings } from 'n8n-core';
-import { EventMessageTypeNames, jsonParse } from 'n8n-workflow';
-import promClient, { type Counter, type Gauge } from 'prom-client';
+import { EventMessageTypeNames, jsonParse, type IRun, type IWorkflowBase } from 'n8n-workflow';
+import promClient, { type Counter, type Gauge, type Histogram } from 'prom-client';
 import semverParse from 'semver/functions/parse';
 
 import { N8N_VERSION } from '@/constants';
@@ -35,25 +35,35 @@ export class PrometheusMetricsService {
 
 	private readonly gauges: Record<string, Gauge<string>> = {};
 
+	private readonly histograms: Record<string, Histogram<string>> = {};
+
 	private readonly prefix = this.globalConfig.endpoints.metrics.prefix;
 
 	private readonly includes: Includes = {
-		metrics: {
-			default: this.globalConfig.endpoints.metrics.includeDefaultMetrics,
-			routes: this.globalConfig.endpoints.metrics.includeApiEndpoints,
-			cache: this.globalConfig.endpoints.metrics.includeCacheMetrics,
-			logs: this.globalConfig.endpoints.metrics.includeMessageEventBusMetrics,
-			queue: this.globalConfig.endpoints.metrics.includeQueueMetrics,
-			workflowStatistics: this.globalConfig.endpoints.metrics.includeWorkflowStatistics,
+		buckets: {
+			nodeExecutionTime: this.globalConfig.endpoints.metrics.nodeExecutionTimeBuckets,
+			workflowExecutionTime: this.globalConfig.endpoints.metrics.workflowExecutionTimeBuckets,
 		},
 		labels: {
+			apiMethod: this.globalConfig.endpoints.metrics.includeApiMethodLabel,
+			apiPath: this.globalConfig.endpoints.metrics.includeApiPathLabel,
+			apiStatusCode: this.globalConfig.endpoints.metrics.includeApiStatusCodeLabel,
 			credentialsType: this.globalConfig.endpoints.metrics.includeCredentialTypeLabel,
+			nodeId: this.globalConfig.endpoints.metrics.includeNodeIdLabel,
+			nodeName: this.globalConfig.endpoints.metrics.includeNodeNameLabel,
 			nodeType: this.globalConfig.endpoints.metrics.includeNodeTypeLabel,
 			workflowId: this.globalConfig.endpoints.metrics.includeWorkflowIdLabel,
-			apiPath: this.globalConfig.endpoints.metrics.includeApiPathLabel,
-			apiMethod: this.globalConfig.endpoints.metrics.includeApiMethodLabel,
-			apiStatusCode: this.globalConfig.endpoints.metrics.includeApiStatusCodeLabel,
 			workflowName: this.globalConfig.endpoints.metrics.includeWorkflowNameLabel,
+		},
+		metrics: {
+			cache: this.globalConfig.endpoints.metrics.includeCacheMetrics,
+			default: this.globalConfig.endpoints.metrics.includeDefaultMetrics,
+			logs: this.globalConfig.endpoints.metrics.includeMessageEventBusMetrics,
+			node: this.globalConfig.endpoints.metrics.includeNodeMetrics,
+			queue: this.globalConfig.endpoints.metrics.includeQueueMetrics,
+			routes: this.globalConfig.endpoints.metrics.includeApiEndpoints,
+			workflow: this.globalConfig.endpoints.metrics.includeWorkflowMetrics,
+			workflowStatistics: this.globalConfig.endpoints.metrics.includeWorkflowStatistics,
 		},
 	};
 
@@ -68,6 +78,14 @@ export class PrometheusMetricsService {
 		this.initQueueMetrics();
 		this.initActiveWorkflowCountMetric();
 		this.initWorkflowStatisticsMetrics();
+		this.initWorkflowMetrics();
+		this.initNodeMetrics();
+		if (this.includes.metrics.workflow || this.includes.metrics.node) {
+			this.eventService.on('workflow-post-execute', (event) => {
+				if (!event.runData) return;
+				this.recordMetrics(event);
+			});
+		}
 		this.mountMetricsEndpoint(app);
 	}
 
@@ -334,8 +352,154 @@ export class PrometheusMetricsService {
 		});
 	}
 
+	/**
+	 * Record workflow and node execution metrics upon workflow completion.
+	 */
+	private recordMetrics(event: {
+		executionId: string;
+		userId?: string;
+		workflow: IWorkflowBase;
+		runData?: IRun;
+	}) {
+		const data = event.runData!;
+
+		if (this.includes.metrics.workflow) {
+			const labels = this.toLabels({
+				__type: EventMessageTypeNames.workflow,
+				payload: {
+					workflowId: event.workflow.id,
+					workflowName: event.workflow.name,
+				},
+			} as unknown as EventMessageTypes);
+
+			if (data.status === 'success') {
+				this.counters.workflowSuccess?.inc(labels, 1);
+				if (data.stoppedAt) {
+					const executionTime = (data.stoppedAt.getTime() - data.startedAt.getTime()) / 1000;
+					this.histograms.workflowExecutionTime.observe(labels, executionTime);
+				}
+			} else if (['error', 'crashed'].includes(data.status ?? '')) {
+				this.counters.workflowFailed?.inc(labels, 1);
+			}
+		}
+
+		const runData = data.data?.resultData?.runData;
+		if (this.includes.metrics.node && runData) {
+			const nodes = event.workflow.nodes;
+			const nodeMap = new Map(nodes.map((n) => [n.name, { id: n.id, type: n.type }]));
+
+			for (const [nodeName, executions] of Object.entries(runData)) {
+				const labels = this.toLabels({
+					__type: EventMessageTypeNames.node,
+					payload: {
+						workflowId: event.workflow.id,
+						workflowName: event.workflow.name,
+						nodeName,
+						nodeId: nodeMap.get(nodeName)?.id,
+						nodeType: nodeMap.get(nodeName)?.type,
+					},
+				} as unknown as EventMessageTypes);
+
+				for (const execution of executions) {
+					if (!execution.error) {
+						this.counters.nodeSuccess?.inc(labels, 1);
+						if (execution.executionTime) {
+							this.histograms.nodeExecutionTime.observe(labels, execution.executionTime / 1000);
+						}
+					} else {
+						this.counters.nodeFailed?.inc(labels, 1);
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Set up workflow execution metrics:
+	 * - `n8n_workflow_success_total`
+	 * - `n8n_workflow_failed_total`
+	 * - `n8n_workflow_execution_time_seconds` (histogram)
+	 *
+	 * Buckets for the histogram are configurable through N8N_WORKFLOW_EXECUTION_TIME_BUCKETS.
+	 */
+	private initWorkflowMetrics() {
+		if (!this.includes.metrics.workflow) {
+			return;
+		}
+
+		const labelNames: string[] = Object.keys(
+			this.toLabels({
+				__type: EventMessageTypeNames.workflow,
+			} as unknown as EventMessageTypes),
+		);
+
+		this.counters.workflowSuccess = new promClient.Counter({
+			name: this.prefix + 'workflow_success_total',
+			help: 'Total number of successful workflow executions.',
+			labelNames,
+		});
+
+		this.counters.workflowFailed = new promClient.Counter({
+			name: this.prefix + 'workflow_failed_total',
+			help: 'Total number of failed workflow executions.',
+			labelNames,
+		});
+
+		this.histograms.workflowExecutionTime = new promClient.Histogram({
+			name: this.prefix + 'workflow_execution_time_seconds',
+			help: 'Histogram of workflow execution times in seconds.',
+			buckets: this.includes.buckets.workflowExecutionTime,
+			labelNames,
+		});
+
+		this.counters.workflowSuccess.inc(0);
+		this.counters.workflowFailed.inc(0);
+	}
+
+	/**
+	 * Set up node execution metrics:
+	 * - `n8n_node_success_total`
+	 * - `n8n_node_failed_total`
+	 * - `n8n_node_execution_time_seconds` (histogram)
+	 *
+	 * Buckets for the histogram are configurable through N8N_NODE_EXECUTION_TIME_BUCKETS.
+	 */
+	private initNodeMetrics() {
+		if (!this.includes.metrics.node) {
+			return;
+		}
+
+		const labelNames: string[] = Object.keys(
+			this.toLabels({
+				__type: EventMessageTypeNames.node,
+			} as unknown as EventMessageTypes),
+		);
+
+		this.counters.nodeSuccess = new promClient.Counter({
+			name: this.prefix + 'node_success_total',
+			help: 'Total number of successful node executions.',
+			labelNames,
+		});
+
+		this.counters.nodeFailed = new promClient.Counter({
+			name: this.prefix + 'node_failed_total',
+			help: 'Total number of failed node executions.',
+			labelNames,
+		});
+
+		this.histograms.nodeExecutionTime = new promClient.Histogram({
+			name: this.prefix + 'node_execution_time_seconds',
+			help: 'Histogram of node execution times in seconds.',
+			buckets: this.includes.buckets.nodeExecutionTime,
+			labelNames,
+		});
+
+		this.counters.nodeSuccess.inc(0);
+		this.counters.nodeFailed.inc(0);
+	}
+
 	private toLabels(event: EventMessageTypes): Record<string, string> {
-		const { __type, eventName, payload } = event;
+		const { __type, eventName, payload = {} } = event;
 
 		switch (__type) {
 			case EventMessageTypeNames.audit:
@@ -359,8 +523,14 @@ export class PrometheusMetricsService {
 
 				if (this.includes.labels.nodeType) {
 					nodeLabels.node_type = String(
-						(payload.nodeType ?? 'unknown').replace('n8n-nodes-', '').replace(/\./g, '_'),
+						(payload?.nodeType ?? 'unknown').replace('n8n-nodes-', '').replace(/\./g, '_'),
 					);
+				}
+				if (this.includes.labels.nodeName) {
+					nodeLabels.node_name = String(payload?.nodeName ?? 'unknown');
+				}
+				if (this.includes.labels.nodeId) {
+					nodeLabels.node_id = String(payload?.nodeId ?? 'unknown');
 				}
 
 				return nodeLabels;

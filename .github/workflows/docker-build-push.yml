@@ -83,7 +83,7 @@ jobs:
     name: Build App, then Build and Push Docker Image (${{ matrix.platform }})
     needs: determine-build-context
     runs-on: ${{ matrix.runner }}
-    # timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       matrix: ${{ fromJSON(needs.determine-build-context.outputs.build_matrix) }}
     outputs:
@@ -218,12 +218,12 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Login to Docker Hub
-        if: needs.determine-build-context.outputs.push_to_docker == 'true'
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+      # - name: Login to Docker Hub
+      #   if: needs.determine-build-context.outputs.push_to_docker == 'true'
+      #   uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Create ECR multi-arch manifests
         run: |
@@ -238,14 +238,17 @@ jobs:
 
             echo "Creating ECR manifest for ${IMAGE_NAME}: ${MANIFEST_TAG}"
 
-            # For branch builds, only AMD64 is built
-            if [[ "$RELEASE_TYPE" == "branch" ]]; then
+            # Always create multi-arch manifest with both amd64 and arm64
+            docker buildx imagetools create \
+              --tag "${MANIFEST_TAG}" \
+              "${MANIFEST_TAG}-amd64" \
+              "${MANIFEST_TAG}-arm64"
+
+            # Also create 'latest' tag for stable releases
+            if [[ "$RELEASE_TYPE" == "stable" ]]; then
+              echo "Creating 'latest' tag for ${IMAGE_NAME}"
               docker buildx imagetools create \
-                --tag "${MANIFEST_TAG}" \
-                "${MANIFEST_TAG}-amd64"
-            else
-              docker buildx imagetools create \
-                --tag "${MANIFEST_TAG}" \
+                --tag "${ECR_BASE}/${IMAGE_NAME}:latest" \
                 "${MANIFEST_TAG}-amd64" \
                 "${MANIFEST_TAG}-arm64"
             fi
@@ -355,7 +358,8 @@ jobs:
     if: |
       success() &&
       (needs.determine-build-context.outputs.release_type == 'stable' ||
-       needs.determine-build-context.outputs.release_type == 'nightly')
+       needs.determine-build-context.outputs.release_type == 'nightly' ||
+       needs.determine-build-context.outputs.release_type == 'rc')
     uses: ./.github/workflows/security-trivy-scan-callable.yml
     with:
       image_ref: ${{ needs.build-and-push-docker.outputs.image_ref }}
@@ -372,7 +376,8 @@ jobs:
     if: |
       success() &&
       (needs.determine-build-context.outputs.release_type == 'stable' ||
-      needs.determine-build-context.outputs.release_type == 'nightly')
+       needs.determine-build-context.outputs.release_type == 'nightly' ||
+       needs.determine-build-context.outputs.release_type == 'rc')
     uses: ./.github/workflows/security-trivy-scan-callable.yml
     with:
       image_ref: ${{ needs.build-and-push-docker.outputs.runners_primary_ghcr_manifest_tag }}

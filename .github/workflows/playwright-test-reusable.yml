@@ -4,33 +4,38 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: 'GitHub branch to test.'
+        description: "GitHub branch to test."
         required: false
         type: string
       test-mode:
-        description: 'Test mode: local (pnpm start from local), docker-build, or docker-pull'
+        description: "Test mode: local (pnpm start from local), docker-build, or docker-pull"
         required: false
-        default: 'local'
+        default: "local"
         type: string
       test-command:
-        description: 'Test command to run'
+        description: "Test command to run"
         required: false
-        default: 'pnpm --filter=n8n-playwright test:local'
+        default: "pnpm --filter=n8n-playwright test:local"
         type: string
       shards:
-        description: 'Shards for parallel execution'
+        description: "Shards for parallel execution"
         required: false
-        default: '[1, 2, 3, 4, 5, 6, 7, 8]'
+        default: "[1, 2, 3, 4, 5, 6, 7, 8]"
         type: string
       docker-image:
-        description: 'Docker image to use (for docker-pull mode)'
+        description: "Docker image to use (for docker-pull mode)"
         required: false
-        default: 'n8nio/n8n:nightly'
+        default: "n8nio/n8n:nightly"
         type: string
       workers:
-        description: 'Number of parallel workers'
+        description: "Number of parallel workers"
         required: false
-        default: ''
+        default: ""
+        type: string
+      runner:
+        description: 'GitHub runner to use'
+        required: false
+        default: 'blacksmith-2vcpu-ubuntu-2204'
         type: string
 
     secrets:
@@ -42,6 +47,10 @@ on:
         required: false
       QA_PERFORMANCE_METRICS_WEBHOOK_PASSWORD:
         required: false
+      N8N_LICENSE_ACTIVATION_KEY:
+        required: false
+      N8N_ENCRYPTION_KEY:
+        required: false
 
 env:
   PLAYWRIGHT_BROWSERS_PATH: packages/testing/playwright/ms-playwright-cache
@@ -49,10 +58,12 @@ env:
   # Disable Ryuk to avoid issues with Docker since it needs privileged access, containers are cleaned on teardown anyway
   TESTCONTAINERS_RYUK_DISABLED: true
   PLAYWRIGHT_WORKERS: ${{ inputs.workers || '2' }} # Configurable workers, defaults to 2 to reduce resource contention
+  # Must match CI's COVERAGE_ENABLED to ensure Turbo cache hits (it's a globalEnv in turbo.json)
+  COVERAGE_ENABLED: 'true'
 
 jobs:
   test:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -101,3 +112,4 @@ jobs:
           QA_PERFORMANCE_METRICS_WEBHOOK_URL: ${{ secrets.QA_PERFORMANCE_METRICS_WEBHOOK_URL }}
           QA_PERFORMANCE_METRICS_WEBHOOK_USER: ${{ secrets.QA_PERFORMANCE_METRICS_WEBHOOK_USER }}
           QA_PERFORMANCE_METRICS_WEBHOOK_PASSWORD: ${{ secrets.QA_PERFORMANCE_METRICS_WEBHOOK_PASSWORD }}
+          N8N_LICENSE_ACTIVATION_KEY: ${{ secrets.N8N_LICENSE_ACTIVATION_KEY }}

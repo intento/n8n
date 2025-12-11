@@ -11,12 +11,14 @@ import { CHAT_VIEW, CHAT_AGENTS_VIEW } from '@/features/ai/chatHub/constants';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { N8nIconButton, N8nScrollArea, N8nText } from '@n8n/design-system';
 import Logo from '@n8n/design-system/components/N8nLogo';
+import BetaTag from '@n8n/design-system/components/BetaTag/BetaTag.vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useIntersectionObserver } from '@vueuse/core';
 import ChatSessionMenuItem from './ChatSessionMenuItem.vue';
 import SkeletonMenuItem from './SkeletonMenuItem.vue';
 import { useTelemetry } from '@/app/composables/useTelemetry';
+import { type ChatHubSessionDto } from '@n8n/api-types';
 import { useCredentialsStore } from '@/features/credentials/credentials.store';
 import { useI18n } from '@n8n/i18n';
 
@@ -43,7 +45,19 @@ const currentSessionId = computed(() =>
 	typeof route.params.id === 'string' ? route.params.id : undefined,
 );
 
-const groupedConversations = computed(() => groupConversationsByDate(chatStore.sessions));
+const groupedConversations = computed(() =>
+	groupConversationsByDate(
+		(chatStore.sessions.ids ?? []).reduce<ChatHubSessionDto[]>((acc, id) => {
+			const session = chatStore.sessions.byId[id];
+
+			if (session) {
+				acc.push(session);
+			}
+
+			return acc;
+		}, []),
+	),
+);
 
 function handleStartRename(sessionId: string) {
 	renamingSessionId.value = sessionId;
@@ -114,12 +128,15 @@ onMounted(() => {
 	<div :class="[$style.component, { [$style.isMobileDevice]: isMobileDevice }]">
 		<div :class="$style.header">
 			<RouterLink :to="{ name: VIEWS.HOMEPAGE }">
-				<Logo
-					:class="$style.logo"
-					size="small"
-					:collapsed="false"
-					:release-channel="settingsStore.settings.releaseChannel"
-				/>
+				<div :class="$style.logoContainer">
+					<Logo
+						:class="$style.logo"
+						size="small"
+						:collapsed="false"
+						:release-channel="settingsStore.settings.releaseChannel"
+					/>
+					<BetaTag />
+				</div>
 			</RouterLink>
 			<N8nIconButton
 				v-if="sidebar.canBeStatic.value"
@@ -189,6 +206,12 @@ onMounted(() => {
 </template>
 
 <style lang="scss" module>
+.logoContainer {
+	display: flex;
+	align-items: center;
+	gap: var(--spacing--4xs);
+}
+
 .component {
 	display: flex;
 	flex-direction: column;

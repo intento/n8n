@@ -252,6 +252,21 @@ jobs:
                 "${MANIFEST_TAG}-amd64" \
                 "${MANIFEST_TAG}-arm64"
             fi
+
+            # Also create 'latest' tag for stable releases
+            if [[ "$RELEASE_TYPE" == "stable" ]]; then
+              echo "Creating 'latest' tag for ${IMAGE_NAME}"
+              if [[ "$RELEASE_TYPE" == "branch" ]]; then
+                docker buildx imagetools create \
+                  --tag "${ECR_BASE}/${IMAGE_NAME}:latest" \
+                  "${MANIFEST_TAG}-amd64"
+              else
+                docker buildx imagetools create \
+                  --tag "${ECR_BASE}/${IMAGE_NAME}:latest" \
+                  "${MANIFEST_TAG}-amd64" \
+                  "${MANIFEST_TAG}-arm64"
+              fi
+            fi
           }
 
           # Create manifests for all images

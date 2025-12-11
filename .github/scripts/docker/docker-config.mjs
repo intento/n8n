@@ -34,21 +34,21 @@ class BuildContext {
 					context.push_to_ghcr = false;
 					break;
 
-      case 'workflow_dispatch':
-        context.version = `branch-${this.sanitizeBranch(branch)}`;
-        context.release_type = 'branch';
-        break;
+				case 'workflow_dispatch':
+					context.version = `branch-${this.sanitizeBranch(branch)}`;
+					context.release_type = 'branch';
+					break;
 
-      case 'push':
-        if (branch === 'master') {
-          context.version = 'dev';
-          context.release_type = 'dev';
-          context.push_to_docker = true;
-        } else {
-          context.version = `branch-${this.sanitizeBranch(branch)}`;
-          context.release_type = 'branch';
-        }
-        break;
+				case 'push':
+					if (branch === 'master') {
+						context.version = 'dev';
+						context.release_type = 'dev';
+						context.push_to_docker = true;
+					} else {
+						context.version = `branch-${this.sanitizeBranch(branch)}`;
+						context.release_type = 'branch';
+					}
+					break;
 
 				case 'workflow_call':
 				case 'release':
@@ -83,11 +83,11 @@ class BuildContext {
 			.substring(0, 128);
 	}
 
-  buildMatrix(platforms) {
-    const runners = {
-      'linux/amd64': 'ubuntu-22.04',
-      'linux/arm64': 'ubuntu-22.04-arm',
-    };
+	buildMatrix(platforms) {
+		const runners = {
+			'linux/amd64': 'ubuntu-22.04',
+			'linux/arm64': 'ubuntu-22.04-arm',
+		};
 
 		const matrix = {
 			platform: [],

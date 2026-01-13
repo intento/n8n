@@ -50,8 +50,16 @@ describe('PrometheusMetricsService', () => {
 					includeQueueMetrics: false,
 					includeWorkflowNameLabel: false,
 					includeWorkflowStatistics: false,
+					includeNodeIdLabel: false,
+					includeNodeNameLabel: false,
+					includeNodeMetrics: false,
+					includeWorkflowMetrics: false,
 					activeWorkflowCountInterval: 30,
 					workflowStatisticsInterval: 30,
+					nodeExecutionTimeBuckets: [
+						0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 40, 60, 120, 300, 600,
+					],
+					workflowExecutionTimeBuckets: [0.5, 1, 2, 5, 10, 20, 40, 60, 120, 300, 600, 900],
 				},
 				rest: 'rest',
 				form: 'form',
@@ -437,9 +445,61 @@ describe('PrometheusMetricsService', () => {
 			);
 		});
 
+		it('should create a counter with `node_name` label for node events', async () => {
+			prometheusMetricsService.enableMetric('logs');
+			prometheusMetricsService.enableLabels(['nodeName']);
+			await prometheusMetricsService.init(app);
+
+			const eventHandler = getEventHandler();
+			const mockEvent = {
+				__type: EventMessageTypeNames.node,
+				eventName: 'n8n.node.execution.started',
+				payload: { nodeName: 'My Node' },
+			};
+
+			eventHandler(mockEvent);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_execution_started_total',
+				help: 'Total number of n8n.node.execution.started events.',
+				labelNames: ['node_name'],
+			});
+
+			expect(promClient.Counter.prototype.inc).toHaveBeenCalledWith({ node_name: 'My Node' }, 1);
+		});
+
+		it('should create a counter with `node_id` label for node events', async () => {
+			prometheusMetricsService.enableMetric('logs');
+			prometheusMetricsService.enableLabels(['nodeId']);
+			await prometheusMetricsService.init(app);
+
+			const eventHandler = getEventHandler();
+			const mockEvent = {
+				__type: EventMessageTypeNames.node,
+				eventName: 'n8n.node.execution.started',
+				payload: { nodeId: 'node-123' },
+			};
+
+			eventHandler(mockEvent);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_execution_started_total',
+				help: 'Total number of n8n.node.execution.started events.',
+				labelNames: ['node_id'],
+			});
+
+			expect(promClient.Counter.prototype.inc).toHaveBeenCalledWith({ node_id: 'node-123' }, 1);
+		});
+
 		it('should create a counter with workflow and node type labels for node events', async () => {
 			prometheusMetricsService.enableMetric('logs');
-			prometheusMetricsService.enableLabels(['workflowId', 'workflowName', 'nodeType']);
+			prometheusMetricsService.enableLabels([
+				'workflowId',
+				'workflowName',
+				'nodeType',
+				'nodeName',
+				'nodeId',
+			]);
 			await prometheusMetricsService.init(app);
 
 			const eventHandler = getEventHandler();
@@ -450,6 +510,8 @@ describe('PrometheusMetricsService', () => {
 					workflowId: 'wf_123',
 					workflowName: 'Fake Workflow Name',
 					nodeType: 'n8n-nodes-base.if',
+					nodeName: 'My Node',
+					nodeId: 'node-123',
 				},
 			};
 
@@ -458,7 +520,7 @@ describe('PrometheusMetricsService', () => {
 			expect(promClient.Counter).toHaveBeenCalledWith({
 				name: 'n8n_node_execution_started_total',
 				help: 'Total number of n8n.node.execution.started events.',
-				labelNames: ['workflow_id', 'workflow_name', 'node_type'],
+				labelNames: ['workflow_id', 'workflow_name', 'node_type', 'node_name', 'node_id'],
 			});
 
 			expect(promClient.Counter.prototype.inc).toHaveBeenCalledWith(
@@ -466,6 +528,8 @@ describe('PrometheusMetricsService', () => {
 					workflow_id: 'wf_123',
 					workflow_name: 'Fake Workflow Name',
 					node_type: 'base_if',
+					node_name: 'My Node',
+					node_id: 'node-123',
 				},
 				1,
 			);
@@ -568,6 +632,189 @@ describe('PrometheusMetricsService', () => {
 				(call) => call[0]?.name === 'n8n_instance_role_leader',
 			);
 			expect(hasInstanceRoleMetric).toBe(false);
+		});
+	});
+
+	describe('workflow metrics', () => {
+		it('should set up workflow success counter', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_workflow_success_total',
+				help: 'Total number of successful workflow executions.',
+				labelNames: [],
+			});
+		});
+
+		it('should set up workflow failed counter', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_workflow_failed_total',
+				help: 'Total number of failed workflow executions.',
+				labelNames: [],
+			});
+		});
+
+		it('should set up workflow execution time histogram', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Histogram).toHaveBeenCalledWith(
+				expect.objectContaining({
+					name: 'n8n_workflow_execution_time_seconds',
+					help: 'Histogram of workflow execution times in seconds.',
+					labelNames: [],
+				}),
+			);
+		});
+
+		it('should include workflow_id label if enabled', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			prometheusMetricsService.enableLabels(['workflowId']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_workflow_success_total',
+				help: 'Total number of successful workflow executions.',
+				labelNames: ['workflow_id'],
+			});
+		});
+
+		it('should include workflow_name label if enabled', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			prometheusMetricsService.enableLabels(['workflowName']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_workflow_success_total',
+				help: 'Total number of successful workflow executions.',
+				labelNames: ['workflow_name'],
+			});
+		});
+
+		it('should include both workflow labels if enabled', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			prometheusMetricsService.enableLabels(['workflowId', 'workflowName']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_workflow_success_total',
+				help: 'Total number of successful workflow executions.',
+				labelNames: ['workflow_id', 'workflow_name'],
+			});
+		});
+
+		it('should register event listener for workflow-post-execute', async () => {
+			prometheusMetricsService.enableMetric('workflow');
+			await prometheusMetricsService.init(app);
+
+			expect(eventService.on).toHaveBeenCalledWith('workflow-post-execute', expect.any(Function));
+		});
+	});
+
+	describe('node metrics', () => {
+		it('should set up node success counter', async () => {
+			prometheusMetricsService.enableMetric('node');
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_success_total',
+				help: 'Total number of successful node executions.',
+				labelNames: [],
+			});
+		});
+
+		it('should set up node failed counter', async () => {
+			prometheusMetricsService.enableMetric('node');
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_failed_total',
+				help: 'Total number of failed node executions.',
+				labelNames: [],
+			});
+		});
+
+		it('should set up node execution time histogram', async () => {
+			prometheusMetricsService.enableMetric('node');
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Histogram).toHaveBeenCalledWith(
+				expect.objectContaining({
+					name: 'n8n_node_execution_time_seconds',
+					help: 'Histogram of node execution times in seconds.',
+					labelNames: [],
+				}),
+			);
+		});
+
+		it('should include node_type label if enabled', async () => {
+			prometheusMetricsService.enableMetric('node');
+			prometheusMetricsService.enableLabels(['nodeType']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_success_total',
+				help: 'Total number of successful node executions.',
+				labelNames: ['node_type'],
+			});
+		});
+
+		it('should include node_name label if enabled', async () => {
+			prometheusMetricsService.enableMetric('node');
+			prometheusMetricsService.enableLabels(['nodeName']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_success_total',
+				help: 'Total number of successful node executions.',
+				labelNames: ['node_name'],
+			});
+		});
+
+		it('should include node_id label if enabled', async () => {
+			prometheusMetricsService.enableMetric('node');
+			prometheusMetricsService.enableLabels(['nodeId']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_success_total',
+				help: 'Total number of successful node executions.',
+				labelNames: ['node_id'],
+			});
+		});
+
+		it('should include workflow labels if enabled', async () => {
+			prometheusMetricsService.enableMetric('node');
+			prometheusMetricsService.enableLabels(['workflowId', 'workflowName']);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_success_total',
+				help: 'Total number of successful node executions.',
+				labelNames: ['workflow_id', 'workflow_name'],
+			});
+		});
+
+		it('should include all node and workflow labels if enabled', async () => {
+			prometheusMetricsService.enableMetric('node');
+			prometheusMetricsService.enableLabels([
+				'workflowId',
+				'workflowName',
+				'nodeType',
+				'nodeName',
+				'nodeId',
+			]);
+			await prometheusMetricsService.init(app);
+
+			expect(promClient.Counter).toHaveBeenCalledWith({
+				name: 'n8n_node_success_total',
+				help: 'Total number of successful node executions.',
+				labelNames: ['workflow_id', 'workflow_name', 'node_type', 'node_name', 'node_id'],
+			});
 		});
 	});
 });

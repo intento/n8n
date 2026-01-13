@@ -73,6 +73,32 @@ class PrometheusMetricsConfig {
 	/** How often (in seconds) to update workflow statistics metrics. */
 	@Env('N8N_METRICS_WORKFLOW_STATISTICS_INTERVAL')
 	workflowStatisticsInterval: number = 300;
+
+	/** Whether to include a label for node ID on node metrics. */
+	@Env('N8N_METRICS_INCLUDE_NODE_ID_LABEL')
+	includeNodeIdLabel: boolean = false;
+
+	/** Whether to include a label for node name on node metrics. */
+	@Env('N8N_METRICS_INCLUDE_NODE_NAME_LABEL')
+	includeNodeNameLabel: boolean = false;
+
+	/** Whether to include metrics for nodes. */
+	@Env('N8N_METRICS_INCLUDE_NODE_METRICS')
+	includeNodeMetrics: boolean = false;
+
+	/** Execution time buckets for nodes. */
+	@Env('N8N_METRICS_NODE_EXECUTION_TIME_BUCKETS')
+	nodeExecutionTimeBuckets: number[] = [
+		0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 40, 60, 120, 300, 600,
+	];
+
+	/** Whether to include metrics for workflows. */
+	@Env('N8N_METRICS_INCLUDE_WORKFLOW_METRICS')
+	includeWorkflowMetrics: boolean = false;
+
+	/** Execution time buckets for workflows. */
+	@Env('N8N_METRICS_WORKFLOW_EXECUTION_TIME_BUCKETS')
+	workflowExecutionTimeBuckets: number[] = [0.5, 1, 2, 5, 10, 20, 40, 60, 120, 300, 600, 900];
 }
 
 @Config

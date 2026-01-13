@@ -32,7 +32,7 @@
 			"type": "node",
 			"envFile": "${workspaceFolder}/.env",
 			"outputCapture": "std",
-			"killBehavior": "polite"
+			"killBehavior": "forceful"
 		},
 		{
 			"name": "Launch n8n CLI dev with debug",

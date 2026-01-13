@@ -1,0 +1,19 @@
+{
+	"extends": ["./tsconfig.json", "@n8n/typescript-config/tsconfig.build.json"],
+	"compilerOptions": {
+		"paths": {
+			"agents/*": ["agents/*"],
+			"context/*": ["context/*"],
+			"supply/*": ["supply/*"],
+			"tracing/*": ["tracing/*"],
+			"types/*": ["types/*"],
+			"utils/*": ["utils/*"]
+		},
+		"composite": true,
+		"rootDir": "src",
+		"outDir": "dist",
+		"tsBuildInfoFile": "dist/build.tsbuildinfo"
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["test/**", "src/**/__tests__/**"]
+}

@@ -9,8 +9,6 @@ import {
 	CHAT_TRIGGER_NODE_TYPE,
 	SCHEDULE_TRIGGER_NODE_TYPE,
 	REGULAR_NODE_CREATOR_VIEW,
-	TRANSFORM_DATA_SUBCATEGORY,
-	FLOWS_CONTROL_SUBCATEGORY,
 	TRIGGER_NODE_CREATOR_VIEW,
 	EMAIL_IMAP_NODE_TYPE,
 	DEFAULT_SUBCATEGORY,
@@ -29,36 +27,15 @@ import {
 	AI_CATEGORY_EMBEDDING,
 	AI_OTHERS_NODE_CREATOR_VIEW,
 	AI_UNCATEGORIZED_CATEGORY,
-	CONVERT_TO_FILE_NODE_TYPE,
-	EXTRACT_FROM_FILE_NODE_TYPE,
-	SET_NODE_TYPE,
-	CODE_NODE_TYPE,
-	DATETIME_NODE_TYPE,
-	FILTER_NODE_TYPE,
-	REMOVE_DUPLICATES_NODE_TYPE,
-	SPLIT_OUT_NODE_TYPE,
-	LIMIT_NODE_TYPE,
-	SUMMARIZE_NODE_TYPE,
-	AGGREGATE_NODE_TYPE,
-	MERGE_NODE_TYPE,
-	HTML_NODE_TYPE,
-	MARKDOWN_NODE_TYPE,
-	XML_NODE_TYPE,
-	CRYPTO_NODE_TYPE,
-	IF_NODE_TYPE,
-	SPLIT_IN_BATCHES_NODE_TYPE,
-	HTTP_REQUEST_NODE_TYPE,
-	HELPERS_SUBCATEGORY,
-	HITL_SUBCATEGORY,
+	TRANSLATION_SUBCATEGORY,
+	APE_SUBCATEGORY,
+	LQA_SUBCATEGORY,
+	PRIMITIVES_SUBCATEGORY,
 	RSS_READ_NODE_TYPE,
 	EMAIL_SEND_NODE_TYPE,
-	EDIT_IMAGE_NODE_TYPE,
-	COMPRESSION_NODE_TYPE,
 	AI_CODE_TOOL_LANGCHAIN_NODE_TYPE,
 	AI_WORKFLOW_TOOL_LANGCHAIN_NODE_TYPE,
-	HUMAN_IN_THE_LOOP_CATEGORY,
 	TEMPLATE_CATEGORY_AI,
-	DATA_TABLE_NODE_TYPE,
 } from '@/app/constants';
 import { useI18n } from '@n8n/i18n';
 import { useNodeTypesStore } from '@/app/stores/nodeTypes.store';
@@ -493,24 +470,162 @@ export function TriggerView() {
 export function RegularView(nodes: SimplifiedNodeType[]) {
 	const i18n = useI18n();
 
-	const popularItemsSubcategory = [
-		SET_NODE_TYPE,
-		CODE_NODE_TYPE,
-		DATA_TABLE_NODE_TYPE,
-		DATETIME_NODE_TYPE,
-		AI_TRANSFORM_NODE_TYPE,
-	];
-
-	const getSendAndWaitNodes = (nodes: SimplifiedNodeType[]) => {
-		return (nodes ?? [])
-			.filter((node) => node.codex?.categories?.includes(HUMAN_IN_THE_LOOP_CATEGORY))
-			.map((node) => node.name);
-	};
-
 	const view: NodeView = {
 		value: REGULAR_NODE_CREATOR_VIEW,
 		title: i18n.baseText('nodeCreator.triggerHelperPanel.whatHappensNext'),
 		items: [
+			{
+				type: 'subcategory',
+				key: TRANSLATION_SUBCATEGORY,
+				category: CORE_NODES_CATEGORY,
+				properties: {
+					title: i18n.baseText('nodeCreator.subcategoryNames.translation'),
+					icon: 'language',
+				},
+			},
+			{
+				type: 'subcategory',
+				key: APE_SUBCATEGORY,
+				category: CORE_NODES_CATEGORY,
+				properties: {
+					title: i18n.baseText('nodeCreator.subcategoryNames.automaticPostEditing'),
+					icon: 'edit',
+					sections: [
+						{
+							key: 'apeNodes',
+							title: i18n.baseText('nodeCreator.sectionNames.popular'),
+							items: [],
+						},
+					],
+				},
+			},
+			{
+				type: 'subcategory',
+				key: LQA_SUBCATEGORY,
+				category: CORE_NODES_CATEGORY,
+				properties: {
+					title: i18n.baseText('nodeCreator.subcategoryNames.languageQualityAssurance'),
+					icon: 'check-double',
+					sections: [
+						{
+							key: 'lqaNodes',
+							title: i18n.baseText('nodeCreator.sectionNames.popular'),
+							items: [],
+						},
+					],
+				},
+			},
+			{
+				type: 'view',
+				key: AI_NODE_CREATOR_VIEW,
+				properties: {
+					title: i18n.baseText('nodeCreator.aiPanel.langchainAiNodes'),
+					icon: 'robot',
+					description: i18n.baseText('nodeCreator.aiPanel.nodesForAi'),
+					borderless: true,
+				},
+			},
+			{
+				type: 'subcategory',
+				key: PRIMITIVES_SUBCATEGORY,
+				category: CORE_NODES_CATEGORY,
+				properties: {
+					title: i18n.baseText('nodeCreator.subcategoryNames.primitives'),
+					icon: 'cube',
+					sections: [
+						{
+							key: 'flow',
+							title: 'Flow',
+							items: [
+								'n8n-nodes-base.if',
+								'n8n-nodes-base.switch',
+								'n8n-nodes-base.filter',
+								'n8n-nodes-base.wait',
+								'n8n-nodes-base.limit',
+								'n8n-nodes-base.splitInBatches',
+								'n8n-nodes-base.stopAndError',
+								'n8n-nodes-base.noOp',
+							],
+						},
+						{
+							key: 'files',
+							title: 'Files',
+							items: [
+								'n8n-nodes-base.readWriteFile',
+								'n8n-nodes-base.extractFromFile',
+								'n8n-nodes-base.convertToFile',
+								'n8n-nodes-base.html',
+								'n8n-nodes-base.xml',
+								'n8n-nodes-base.markdown',
+								'n8n-nodes-base.compression',
+								'n8n-nodes-base.editImage',
+							],
+						},
+						{
+							key: 'dataTransformation',
+							title: 'Data Transformation',
+							items: [
+								'n8n-nodes-base.set',
+								'n8n-nodes-base.merge',
+								'n8n-nodes-base.compareDatasets',
+								'n8n-nodes-base.aggregate',
+								'n8n-nodes-base.summarize',
+								'n8n-nodes-base.renameKeys',
+								'n8n-nodes-base.splitOut',
+								'n8n-nodes-base.sort',
+								'n8n-nodes-base.removeDuplicates',
+								'n8n-nodes-base.dateTime',
+								'n8n-nodes-base.dataTable',
+							],
+						},
+						{
+							key: 'integrationAndDevelopment',
+							title: 'Integration & Development',
+							items: [
+								'n8n-nodes-base.httpRequest',
+								'n8n-nodes-base.webhook',
+								'n8n-nodes-base.code',
+								'n8n-nodes-base.executeWorkflow',
+								'n8n-nodes-base.ftp',
+								'n8n-nodes-base.executeCommand',
+								'n8n-nodes-base.ssh',
+								'n8n-nodes-base.n8n',
+								'n8n-nodes-base.emailSend',
+								'n8n-nodes-base.executionData',
+								'n8n-nodes-base.respondToWebhook',
+								'n8n-nodes-base.localFileTrigger',
+								'n8n-nodes-base.crypto',
+								'n8n-nodes-base.totp',
+							],
+						},
+						{
+							key: 'hitl',
+							title: 'Human in the Loop',
+							items: [
+								'n8n-nodes-base.form',
+								'n8n-nodes-base.slack',
+								'n8n-nodes-base.gmail',
+								'n8n-nodes-base.discord',
+								'n8n-nodes-base.microsoftTeams',
+								'n8n-nodes-base.microsoftOutlook',
+								'n8n-nodes-base.telegram',
+								'n8n-nodes-base.googleChat',
+								'n8n-nodes-base.whatsApp',
+								'n8n-nodes-base.whatsAppTrigger',
+							],
+						},
+					],
+				},
+			},
+			{
+				key: TRIGGER_NODE_CREATOR_VIEW,
+				type: 'view',
+				properties: {
+					title: i18n.baseText('nodeCreator.triggerHelperPanel.addAnotherTrigger'),
+					icon: 'bolt-filled',
+					description: i18n.baseText('nodeCreator.triggerHelperPanel.addAnotherTriggerDescription'),
+				},
+			},
 			{
 				key: DEFAULT_SUBCATEGORY,
 				type: 'subcategory',
@@ -520,134 +635,8 @@ export function RegularView(nodes: SimplifiedNodeType[]) {
 					forceIncludeNodes: [RSS_READ_NODE_TYPE, EMAIL_SEND_NODE_TYPE],
 				},
 			},
-			{
-				type: 'subcategory',
-				key: TRANSFORM_DATA_SUBCATEGORY,
-				category: CORE_NODES_CATEGORY,
-				properties: {
-					title: TRANSFORM_DATA_SUBCATEGORY,
-					icon: 'pen',
-					sections: [
-						{
-							key: 'popular',
-							title: i18n.baseText('nodeCreator.sectionNames.popular'),
-							items: popularItemsSubcategory,
-						},
-						{
-							key: 'addOrRemove',
-							title: i18n.baseText('nodeCreator.sectionNames.transform.addOrRemove'),
-							items: [
-								FILTER_NODE_TYPE,
-								REMOVE_DUPLICATES_NODE_TYPE,
-								SPLIT_OUT_NODE_TYPE,
-								LIMIT_NODE_TYPE,
-							],
-						},
-						{
-							key: 'combine',
-							title: i18n.baseText('nodeCreator.sectionNames.transform.combine'),
-							items: [SUMMARIZE_NODE_TYPE, AGGREGATE_NODE_TYPE, MERGE_NODE_TYPE],
-						},
-						{
-							key: 'convert',
-							title: i18n.baseText('nodeCreator.sectionNames.transform.convert'),
-							items: [
-								HTML_NODE_TYPE,
-								MARKDOWN_NODE_TYPE,
-								XML_NODE_TYPE,
-								CRYPTO_NODE_TYPE,
-								EXTRACT_FROM_FILE_NODE_TYPE,
-								CONVERT_TO_FILE_NODE_TYPE,
-								COMPRESSION_NODE_TYPE,
-								EDIT_IMAGE_NODE_TYPE,
-							],
-						},
-					],
-				},
-			},
-			{
-				type: 'subcategory',
-				key: FLOWS_CONTROL_SUBCATEGORY,
-				category: CORE_NODES_CATEGORY,
-				properties: {
-					title: FLOWS_CONTROL_SUBCATEGORY,
-					icon: 'git-branch',
-					sections: [
-						{
-							key: 'popular',
-							title: i18n.baseText('nodeCreator.sectionNames.popular'),
-							items: [FILTER_NODE_TYPE, IF_NODE_TYPE, SPLIT_IN_BATCHES_NODE_TYPE, MERGE_NODE_TYPE],
-						},
-					],
-				},
-			},
-			{
-				type: 'subcategory',
-				key: HELPERS_SUBCATEGORY,
-				category: CORE_NODES_CATEGORY,
-				properties: {
-					title: HELPERS_SUBCATEGORY,
-					icon: 'toolbox',
-					sections: [
-						{
-							key: 'popular',
-							title: i18n.baseText('nodeCreator.sectionNames.popular'),
-							items: [
-								HTTP_REQUEST_NODE_TYPE,
-								WEBHOOK_NODE_TYPE,
-								CODE_NODE_TYPE,
-								DATA_TABLE_NODE_TYPE,
-							],
-						},
-					],
-				},
-			},
-			// To add node to this subcategory:
-			// - add "HITL" to the "categories" property of the node's codex
-			// - add "HITL": ["Human in the Loop"] to the "subcategories" property of the node's codex
-			// node has to have the "sendAndWait" operation, if a new operation needs to be included here:
-			// - update getHumanInTheLoopActions in packages/frontend/editor-ui/src/components/Node/NodeCreator/Modes/NodesMode.vue
-			{
-				type: 'subcategory',
-				key: HITL_SUBCATEGORY,
-				category: HUMAN_IN_THE_LOOP_CATEGORY,
-				properties: {
-					title: HITL_SUBCATEGORY,
-					icon: 'user-check',
-					sections: [
-						{
-							key: 'sendAndWait',
-							title: i18n.baseText('nodeCreator.sectionNames.sendAndWait'),
-							items: getSendAndWaitNodes(nodes),
-						},
-					],
-				},
-			},
 		],
 	};
-
-	const hasAINodes = (nodes ?? []).some((node) => node.codex?.categories?.includes(AI_SUBCATEGORY));
-	if (hasAINodes)
-		view.items.unshift({
-			key: AI_NODE_CREATOR_VIEW,
-			type: 'view',
-			properties: {
-				title: i18n.baseText('nodeCreator.aiPanel.langchainAiNodes'),
-				icon: 'robot',
-				description: i18n.baseText('nodeCreator.aiPanel.nodesForAi'),
-				borderless: true,
-			},
-		} as NodeViewItem);
-
-	view.items.push({
-		key: TRIGGER_NODE_CREATOR_VIEW,
-		type: 'view',
-		properties: {
-			title: i18n.baseText('nodeCreator.triggerHelperPanel.addAnotherTrigger'),
-			icon: 'bolt-filled',
-			description: i18n.baseText('nodeCreator.triggerHelperPanel.addAnotherTriggerDescription'),
-		},
-	});
 
 	return view;
 }

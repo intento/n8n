@@ -13,10 +13,7 @@ import type { SecureContextOptions } from 'tls';
 import type { URLSearchParams } from 'url';
 
 import type { CODE_EXECUTION_MODES, CODE_LANGUAGES, LOG_LEVELS } from './constants';
-import type {
-	IDataTableProjectAggregateService,
-	IDataTableProjectService,
-} from './data-table.types';
+import type { IDataTableProjectAggregateService, IDataTableProjectService } from './data-table.types';
 import type { IDeferredPromise } from './deferred-promise';
 import type { ExecutionCancelledError } from './errors';
 import type { ExpressionError } from './errors/expression.error';
@@ -24,10 +21,7 @@ import type { NodeApiError } from './errors/node-api.error';
 import type { NodeOperationError } from './errors/node-operation.error';
 import type { WorkflowActivationError } from './errors/workflow-activation.error';
 import type { WorkflowOperationError } from './errors/workflow-operation.error';
-import type {
-	IExecutionContext,
-	WorkflowExecuteModeValues as WorkflowExecuteMode,
-} from './execution-context';
+import type { IExecutionContext, WorkflowExecuteModeValues as WorkflowExecuteMode } from './execution-context';
 import type { ExecutionStatus } from './execution-status';
 import type { Result } from './result';
 import type { Workflow } from './workflow';
@@ -214,10 +208,7 @@ export abstract class ICredentialsHelper {
 		credentialsExpired: boolean,
 	): Promise<ICredentialDataDecryptedObject | undefined>;
 
-	abstract getCredentials(
-		nodeCredentials: INodeCredentialsDetails,
-		type: string,
-	): Promise<ICredentials>;
+	abstract getCredentials(nodeCredentials: INodeCredentialsDetails, type: string): Promise<ICredentials>;
 
 	abstract getDecrypted(
 		additionalData: IWorkflowExecuteAdditionalData,
@@ -229,11 +220,7 @@ export abstract class ICredentialsHelper {
 		expressionResolveValues?: ICredentialsExpressionResolveValues,
 	): Promise<ICredentialDataDecryptedObject>;
 
-	abstract updateCredentials(
-		nodeCredentials: INodeCredentialsDetails,
-		type: string,
-		data: ICredentialDataDecryptedObject,
-	): Promise<void>;
+	abstract updateCredentials(nodeCredentials: INodeCredentialsDetails, type: string, data: ICredentialDataDecryptedObject): Promise<void>;
 
 	abstract updateCredentialsOauthTokenData(
 		nodeCredentials: INodeCredentialsDetails,
@@ -259,10 +246,7 @@ export interface IAuthenticateGeneric extends IAuthenticateBase {
 }
 
 export type IAuthenticate =
-	| ((
-			credentials: ICredentialDataDecryptedObject,
-			requestOptions: IHttpRequestOptions,
-	  ) => Promise<IHttpRequestOptions>)
+	| ((credentials: ICredentialDataDecryptedObject, requestOptions: IHttpRequestOptions) => Promise<IHttpRequestOptions>)
 	| IAuthenticateGeneric;
 
 export interface IAuthenticateRuleBase {
@@ -295,10 +279,7 @@ type Override<A extends object, B extends object> = Omit<A, keyof B> & B;
 export namespace DeclarativeRestApiSettings {
 	// The type below might be extended
 	// with new options that need to be parsed as expressions
-	export type HttpRequestOptions = Override<
-		IHttpRequestOptions,
-		{ skipSslCertificateValidation?: string | boolean; url?: string }
-	>;
+	export type HttpRequestOptions = Override<IHttpRequestOptions, { skipSslCertificateValidation?: string | boolean; url?: string }>;
 
 	export type ResultOptions = {
 		maxResults?: number | string;
@@ -348,10 +329,7 @@ export interface ICredentialType {
 	documentationUrl?: string;
 	__overwrittenProperties?: string[];
 	authenticate?: IAuthenticate;
-	preAuthentication?: (
-		this: IHttpRequestHelper,
-		credentials: ICredentialDataDecryptedObject,
-	) => Promise<IDataObject>;
+	preAuthentication?: (this: IHttpRequestHelper, credentials: ICredentialDataDecryptedObject) => Promise<IDataObject>;
 	test?: ICredentialTestRequest;
 	genericAuth?: boolean;
 	httpRequestNode?: ICredentialHttpRequestNode;
@@ -373,13 +351,7 @@ export interface ICredentialData {
 }
 
 // The encrypted credentials which the nodes can access
-export type CredentialInformation =
-	| string
-	| string[]
-	| number
-	| boolean
-	| IDataObject
-	| IDataObject[];
+export type CredentialInformation = string | string[] | number | boolean | IDataObject | IDataObject[];
 
 // The encrypted credentials which the nodes can access
 export interface ICredentialDataDecryptedObject {
@@ -555,10 +527,7 @@ export interface IN8nRequestOperations {
 	pagination?:
 		| IN8nRequestOperationPaginationGeneric
 		| IN8nRequestOperationPaginationOffset
-		| ((
-				this: IExecutePaginationFunctions,
-				requestOptions: DeclarativeRestApiSettings.ResultOptions,
-		  ) => Promise<INodeExecutionData[]>);
+		| ((this: IExecutePaginationFunctions, requestOptions: DeclarativeRestApiSettings.ResultOptions) => Promise<INodeExecutionData[]>);
 }
 
 export interface IN8nRequestOperationPaginationBase {
@@ -619,13 +588,7 @@ namespace ExecuteFunctions {
 	}
 
 	namespace BooleanReturning {
-		export type NodeParameter =
-			| 'binaryData'
-			| 'download'
-			| 'jsonParameters'
-			| 'returnAll'
-			| 'rawData'
-			| 'resolveData';
+		export type NodeParameter = 'binaryData' | 'download' | 'jsonParameters' | 'returnAll' | 'rawData' | 'resolveData';
 	}
 
 	namespace RecordReturning {
@@ -634,10 +597,7 @@ namespace ExecuteFunctions {
 
 	export type GetNodeParameterFn = {
 		// @TECH_DEBT: Refactor to remove this barely used overload - N8N-5632
-		getNodeParameter<T extends { resource: string }>(
-			parameterName: 'resource',
-			itemIndex?: number,
-		): T['resource'];
+		getNodeParameter<T extends { resource: string }>(parameterName: 'resource', itemIndex?: number): T['resource'];
 
 		getNodeParameter(
 			parameterName: StringReturning.NodeParameter,
@@ -711,22 +671,15 @@ export interface FileSystemHelperFunctions {
 	 */
 	createReadStream(filePath: ResolvedFilePath): Promise<Readable>;
 	getStoragePath(): string;
-	/**
-	 * Use {@link resolvePath} to resolve the path first.
-	 */
 	writeContentToFile(
-		path: ResolvedFilePath,
+		path: PathLike,
 		content: string | Buffer | Readable,
-		flag?: number,
+		flag?: string,
 	): Promise<void>;
 }
 
 export interface BinaryHelperFunctions {
-	prepareBinaryData(
-		binaryData: Buffer | Readable,
-		filePath?: string,
-		mimeType?: string,
-	): Promise<IBinaryData>;
+	prepareBinaryData(binaryData: Buffer | Readable, filePath?: string, mimeType?: string): Promise<IBinaryData>;
 	setBinaryDataBuffer(data: IBinaryData, binaryData: Buffer): Promise<IBinaryData>;
 	/** @deprecated */
 	copyBinaryFile(): Promise<never>;
@@ -783,16 +736,9 @@ export interface DeduplicationHelperFunctions {
 		scope: DeduplicationScope,
 		options: ICheckProcessedOptions,
 	): Promise<IDeduplicationOutputItems>;
-	removeProcessed(
-		items: DeduplicationItemTypes[],
-		scope: DeduplicationScope,
-		options: ICheckProcessedOptions,
-	): Promise<void>;
+	removeProcessed(items: DeduplicationItemTypes[], scope: DeduplicationScope, options: ICheckProcessedOptions): Promise<void>;
 	clearAllProcessedItems(scope: DeduplicationScope, options: ICheckProcessedOptions): Promise<void>;
-	getProcessedDataCount(
-		scope: DeduplicationScope,
-		options: ICheckProcessedOptions,
-	): Promise<number>;
+	getProcessedDataCount(scope: DeduplicationScope, options: ICheckProcessedOptions): Promise<number>;
 }
 interface NodeHelperFunctions {
 	copyBinaryFile(filePath: string, fileName: string, mimeType?: string): Promise<IBinaryData>;
@@ -835,11 +781,7 @@ export interface RequestHelperFunctions {
 	 * @deprecated Use .httpRequestWithAuthentication instead
 	 * @see RequestHelperFunctions.requestWithAuthentication
 	 */
-	requestOAuth1(
-		this: IAllExecuteFunctions,
-		credentialsType: string,
-		requestOptions: IRequestOptions,
-	): Promise<any>;
+	requestOAuth1(this: IAllExecuteFunctions, credentialsType: string, requestOptions: IRequestOptions): Promise<any>;
 	/**
 	 * @deprecated Use .httpRequestWithAuthentication instead
 	 * @see RequestHelperFunctions.requestWithAuthentication
@@ -850,11 +792,7 @@ export interface RequestHelperFunctions {
 		requestOptions: IRequestOptions,
 		oAuth2Options?: IOAuth2Options,
 	): Promise<any>;
-	refreshOAuth2Token(
-		this: IAllExecuteFunctions,
-		credentialsType: string,
-		oAuth2Options?: IOAuth2Options,
-	): Promise<any>;
+	refreshOAuth2Token(this: IAllExecuteFunctions, credentialsType: string, oAuth2Options?: IOAuth2Options): Promise<any>;
 }
 
 export type SSHCredentials = {
@@ -881,8 +819,7 @@ export interface SSHTunnelFunctions {
 }
 
 type CronUnit = number | '*' | `*/${number}`;
-export type CronExpression =
-	`${CronUnit} ${CronUnit} ${CronUnit} ${CronUnit} ${CronUnit} ${CronUnit}`;
+export type CronExpression = `${CronUnit} ${CronUnit} ${CronUnit} ${CronUnit} ${CronUnit} ${CronUnit}`;
 
 type CronRecurrenceRule =
 	| { activated: false }
@@ -917,10 +854,7 @@ export type NodeTypeAndVersion = {
 
 export interface FunctionsBase {
 	logger: Logger;
-	getCredentials<T extends object = ICredentialDataDecryptedObject>(
-		type: string,
-		itemIndex?: number,
-	): Promise<T>;
+	getCredentials<T extends object = ICredentialDataDecryptedObject>(type: string, itemIndex?: number): Promise<T>;
 	getCredentialsProperties(type: string): INodeProperties[];
 	getExecutionId(): string;
 	getNode(): INode;
@@ -934,10 +868,7 @@ export interface FunctionsBase {
 	getSignedResumeUrl(parameters?: Record<string, string>): string;
 	/** Set requirement in the execution for signature token validation */
 	setSignatureValidationRequired(): void;
-	getChildNodes(
-		nodeName: string,
-		options?: { includeNodeParameters?: boolean },
-	): NodeTypeAndVersion[];
+	getChildNodes(nodeName: string, options?: { includeNodeParameters?: boolean }): NodeTypeAndVersion[];
 	getParentNodes(
 		nodeName: string,
 		options?: {
@@ -964,17 +895,8 @@ type FunctionsBaseWithRequiredKeys<Keys extends keyof FunctionsBase> = Functions
 export type ContextType = 'flow' | 'node';
 
 export type DataTableProxyProvider = {
-	getDataTableAggregateProxy(
-		workflow: Workflow,
-		node: INode,
-		projectId?: string,
-	): Promise<IDataTableProjectAggregateService>;
-	getDataTableProxy(
-		workflow: Workflow,
-		node: INode,
-		dataTableId: string,
-		projectId?: string,
-	): Promise<IDataTableProjectService>;
+	getDataTableAggregateProxy(workflow: Workflow, node: INode, projectId?: string): Promise<IDataTableProjectAggregateService>;
+	getDataTableProxy(workflow: Workflow, node: INode, dataTableId: string, projectId?: string): Promise<IDataTableProjectService>;
 };
 
 export type DataTableProxyFunctions = {
@@ -1009,11 +931,7 @@ export type IExecuteFunctions = ExecuteFunctions.GetNodeParameterFn &
 			},
 		): Promise<ExecuteWorkflowData>;
 		getExecutionDataById(executionId: string): Promise<IRunExecutionData | undefined>;
-		getInputConnectionData(
-			connectionType: AINodeConnectionType,
-			itemIndex: number,
-			inputIndex?: number,
-		): Promise<unknown>;
+		getInputConnectionData(connectionType: AINodeConnectionType, itemIndex: number, inputIndex?: number): Promise<unknown>;
 		getInputData(inputIndex?: number, connectionType?: NodeConnectionType): INodeExecutionData[];
 		getNodeInputs(): INodeInputConfiguration[];
 		getNodeOutputs(): INodeOutputConfiguration[];
@@ -1024,11 +942,7 @@ export type IExecuteFunctions = ExecuteFunctions.GetNodeParameterFn &
 		isStreaming(): boolean;
 
 		// TODO: Make this one then only available in the new config one
-		addInputData(
-			connectionType: NodeConnectionType,
-			data: INodeExecutionData[][] | ExecutionError,
-			runIndex?: number,
-		): { index: number };
+		addInputData(connectionType: NodeConnectionType, data: INodeExecutionData[][] | ExecutionError, runIndex?: number): { index: number };
 		addOutputData(
 			connectionType: NodeConnectionType,
 			currentNodeRunIndex: number,
@@ -1053,10 +967,7 @@ export type IExecuteFunctions = ExecuteFunctions.GetNodeParameterFn &
 					options: { itemData: IPairedItemData | IPairedItemData[] },
 				): NodeExecutionWithMetadata[];
 				assertBinaryData(itemIndex: number, parameterData: string | IBinaryData): IBinaryData;
-				getBinaryDataBuffer(
-					itemIndex: number,
-					parameterData: string | IBinaryData,
-				): Promise<Buffer>;
+				getBinaryDataBuffer(itemIndex: number, parameterData: string | IBinaryData): Promise<Buffer>;
 				detectBinaryEncoding(buffer: Buffer): string;
 				copyInputItems(items: INodeExecutionData[], properties: string[]): IDataObject[];
 			};
@@ -1068,18 +979,12 @@ export type IExecuteFunctions = ExecuteFunctions.GetNodeParameterFn &
 			settings: unknown,
 			itemIndex: number,
 		): Promise<Result<T, E>>;
-
-		getRunnerStatus(taskType: string): { available: true } | { available: false; reason?: string };
 	};
 
 export interface IExecuteSingleFunctions extends BaseExecutionFunctions {
 	getInputData(inputIndex?: number, connectionType?: NodeConnectionType): INodeExecutionData;
 	getItemIndex(): number;
-	getNodeParameter(
-		parameterName: string,
-		fallbackValue?: any,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object;
+	getNodeParameter(parameterName: string, fallbackValue?: any, options?: IGetNodeParameterOptions): NodeParameterValueType | object;
 
 	helpers: RequestHelperFunctions &
 		BaseHelperFunctions &
@@ -1119,22 +1024,12 @@ export type ISupplyDataFunctions = ExecuteFunctions.GetNodeParameterFn &
 	};
 
 export interface IExecutePaginationFunctions extends IExecuteSingleFunctions {
-	makeRoutingRequest(
-		this: IAllExecuteFunctions,
-		requestOptions: DeclarativeRestApiSettings.ResultOptions,
-	): Promise<INodeExecutionData[]>;
+	makeRoutingRequest(this: IAllExecuteFunctions, requestOptions: DeclarativeRestApiSettings.ResultOptions): Promise<INodeExecutionData[]>;
 }
 
 export interface ILoadOptionsFunctions extends FunctionsBase {
-	getNodeParameter(
-		parameterName: string,
-		fallbackValue?: any,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object;
-	getCurrentNodeParameter(
-		parameterName: string,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object | undefined;
+	getNodeParameter(parameterName: string, fallbackValue?: any, options?: IGetNodeParameterOptions): NodeParameterValueType | object;
+	getCurrentNodeParameter(parameterName: string, options?: IGetNodeParameterOptions): NodeParameterValueType | object | undefined;
 	getCurrentNodeParameters(): INodeParameters | undefined;
 
 	helpers: RequestHelperFunctions & SSHTunnelFunctions & DataTableProxyFunctions;
@@ -1142,8 +1037,7 @@ export interface ILoadOptionsFunctions extends FunctionsBase {
 
 export type FieldValueOption = { name: string; type: FieldType | 'any' };
 
-export type IWorkflowNodeContext = ExecuteFunctions.GetNodeParameterFn &
-	Pick<FunctionsBase, 'getNode' | 'getWorkflow'>;
+export type IWorkflowNodeContext = ExecuteFunctions.GetNodeParameterFn & Pick<FunctionsBase, 'getNode' | 'getWorkflow'>;
 
 export interface ILocalLoadOptionsFunctions {
 	getWorkflowNodeContext(
@@ -1156,71 +1050,41 @@ export interface IWorkflowLoader {
 	get(workflowId: string): Promise<IWorkflowBase>;
 }
 
-export interface IPollFunctions
-	extends FunctionsBaseWithRequiredKeys<'getMode' | 'getActivationMode'> {
+export interface IPollFunctions extends FunctionsBaseWithRequiredKeys<'getMode' | 'getActivationMode'> {
 	__emit(
 		data: INodeExecutionData[][],
 		responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>,
 		donePromise?: IDeferredPromise<IRun>,
 	): void;
 	__emitError(error: Error, responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>): void;
-	getNodeParameter(
-		parameterName: string,
-		fallbackValue?: any,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object;
-	helpers: RequestHelperFunctions &
-		BaseHelperFunctions &
-		BinaryHelperFunctions &
-		SchedulingFunctions;
+	getNodeParameter(parameterName: string, fallbackValue?: any, options?: IGetNodeParameterOptions): NodeParameterValueType | object;
+	helpers: RequestHelperFunctions & BaseHelperFunctions & BinaryHelperFunctions & SchedulingFunctions;
 }
 
-export interface ITriggerFunctions
-	extends FunctionsBaseWithRequiredKeys<'getMode' | 'getActivationMode'> {
+export interface ITriggerFunctions extends FunctionsBaseWithRequiredKeys<'getMode' | 'getActivationMode'> {
 	emit(
 		data: INodeExecutionData[][],
 		responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>,
 		donePromise?: IDeferredPromise<IRun>,
 	): void;
 	emitError(error: Error, responsePromise?: IDeferredPromise<IExecuteResponsePromiseData>): void;
-	getNodeParameter(
-		parameterName: string,
-		fallbackValue?: any,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object;
-	helpers: RequestHelperFunctions &
-		BaseHelperFunctions &
-		BinaryHelperFunctions &
-		SSHTunnelFunctions &
-		SchedulingFunctions;
+	getNodeParameter(parameterName: string, fallbackValue?: any, options?: IGetNodeParameterOptions): NodeParameterValueType | object;
+	helpers: RequestHelperFunctions & BaseHelperFunctions & BinaryHelperFunctions & SSHTunnelFunctions & SchedulingFunctions;
 }
 
-export interface IHookFunctions
-	extends FunctionsBaseWithRequiredKeys<'getMode' | 'getActivationMode'> {
+export interface IHookFunctions extends FunctionsBaseWithRequiredKeys<'getMode' | 'getActivationMode'> {
 	getWebhookName(): string;
 	getWebhookDescription(name: WebhookType): IWebhookDescription | undefined;
 	getNodeWebhookUrl: (name: WebhookType) => string | undefined;
-	getNodeParameter(
-		parameterName: string,
-		fallbackValue?: any,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object;
+	getNodeParameter(parameterName: string, fallbackValue?: any, options?: IGetNodeParameterOptions): NodeParameterValueType | object;
 	helpers: RequestHelperFunctions;
 }
 
 export interface IWebhookFunctions extends FunctionsBaseWithRequiredKeys<'getMode'> {
 	getBodyData(): IDataObject;
 	getHeaderData(): IncomingHttpHeaders;
-	getInputConnectionData(
-		connectionType: AINodeConnectionType,
-		itemIndex: number,
-		inputIndex?: number,
-	): Promise<unknown>;
-	getNodeParameter(
-		parameterName: string,
-		fallbackValue?: any,
-		options?: IGetNodeParameterOptions,
-	): NodeParameterValueType | object;
+	getInputConnectionData(connectionType: AINodeConnectionType, itemIndex: number, inputIndex?: number): Promise<unknown>;
+	getNodeParameter(parameterName: string, fallbackValue?: any, options?: IGetNodeParameterOptions): NodeParameterValueType | object;
 	getNodeWebhookUrl: (name: WebhookType) => string | undefined;
 	evaluateExpression(expression: string, itemIndex?: number): NodeParameterValueType;
 	getParamsData(): object;
@@ -1398,16 +1262,7 @@ export type CodeAutocompleteTypes = 'function' | 'functionItem';
 export type EditorType = 'codeNodeEditor' | 'jsEditor' | 'htmlEditor' | 'sqlEditor' | 'cssEditor';
 export type CodeNodeEditorLanguage = (typeof CODE_LANGUAGES)[number];
 export type CodeExecutionMode = (typeof CODE_EXECUTION_MODES)[number];
-export type SQLDialect =
-	| 'StandardSQL'
-	| 'PostgreSQL'
-	| 'MySQL'
-	| 'OracleDB'
-	| 'MariaSQL'
-	| 'MSSQL'
-	| 'SQLite'
-	| 'Cassandra'
-	| 'PLSQL';
+export type SQLDialect = 'StandardSQL' | 'PostgreSQL' | 'MySQL' | 'OracleDB' | 'MariaSQL' | 'MSSQL' | 'SQLite' | 'Cassandra' | 'PLSQL';
 
 export interface ILoadOptions {
 	routing?: {
@@ -1438,9 +1293,7 @@ export interface CalloutActionOpenSampleWorkflowTemplate extends CalloutActionBa
 	templateId: string;
 }
 
-export type CalloutAction =
-	| CalloutActionOpenPreBuiltAgentsCollection
-	| CalloutActionOpenSampleWorkflowTemplate;
+export type CalloutAction = CalloutActionOpenPreBuiltAgentsCollection | CalloutActionOpenSampleWorkflowTemplate;
 
 export interface INodePropertyTypeOptions {
 	// Supported by: button
@@ -1588,9 +1441,7 @@ export interface INodeProperties {
 	noDataExpression?: boolean;
 	required?: boolean;
 	routing?: INodePropertyRouting;
-	credentialTypes?: Array<
-		'extends:oAuth2Api' | 'extends:oAuth1Api' | 'has:authenticate' | 'has:genericAuth'
-	>;
+	credentialTypes?: Array<'extends:oAuth2Api' | 'extends:oAuth1Api' | 'has:authenticate' | 'has:genericAuth'>;
 	extractValue?: INodePropertyValueExtractor;
 	modes?: INodePropertyMode[];
 	requiresDataPath?: 'single' | 'multiple';
@@ -1624,10 +1475,7 @@ export interface INodePropertyModeTypeOptions {
 	skipCredentialsCheckInRLC?: boolean;
 	allowNewResource?: {
 		label: string;
-	} & (
-		| { method: string; url?: never; defaultName: string }
-		| { method?: never; url: string; defaultName?: never }
-	);
+	} & ({ method: string; url?: never; defaultName: string } | { method?: never; url: string; defaultName?: never });
 }
 
 export interface INodePropertyMode {
@@ -1635,9 +1483,7 @@ export interface INodePropertyMode {
 	name: string;
 	type: 'string' | 'list';
 	hint?: string;
-	validation?: Array<
-		INodePropertyModeValidation | { (this: IExecuteSingleFunctions, value: string): void }
-	>;
+	validation?: Array<INodePropertyModeValidation | { (this: IExecuteSingleFunctions, value: string): void }>;
 	placeholder?: string;
 	url?: string;
 	extractValue?: INodePropertyValueExtractor;
@@ -1710,10 +1556,7 @@ export interface INodePropertyValueExtractorRegex extends INodePropertyValueExtr
 }
 
 export interface INodePropertyValueExtractorFunction {
-	(
-		this: IExecuteSingleFunctions,
-		value: string | NodeParameterValue,
-	): Promise<string | NodeParameterValue> | string;
+	(this: IExecuteSingleFunctions, value: string | NodeParameterValue): Promise<string | NodeParameterValue> | string;
 }
 export type INodePropertyValueExtractor = INodePropertyValueExtractorRegex;
 
@@ -1768,11 +1611,7 @@ export interface SupplyData {
 	hints?: NodeExecutionHint[];
 }
 
-export type NodeOutput =
-	| INodeExecutionData[][]
-	| NodeExecutionWithMetadata[][]
-	| EngineRequest
-	| null;
+export type NodeOutput = INodeExecutionData[][] | NodeExecutionWithMetadata[][] | EngineRequest | null;
 
 export interface INodeType {
 	description: INodeTypeDescription;
@@ -1791,11 +1630,7 @@ export interface INodeType {
 			[key: string]: (this: ILoadOptionsFunctions) => Promise<INodePropertyOptions[]>;
 		};
 		listSearch?: {
-			[key: string]: (
-				this: ILoadOptionsFunctions,
-				filter?: string,
-				paginationToken?: string,
-			) => Promise<INodeListSearchResult>;
+			[key: string]: (this: ILoadOptionsFunctions, filter?: string, paginationToken?: string) => Promise<INodeListSearchResult>;
 		};
 		credentialTest?: {
 			// Contains a group of functions that test credentials.
@@ -1808,10 +1643,7 @@ export interface INodeType {
 			[functionName: string]: (this: ILocalLoadOptionsFunctions) => Promise<ResourceMapperFields>;
 		};
 		actionHandler?: {
-			[functionName: string]: (
-				this: ILoadOptionsFunctions,
-				payload: IDataObject | string | undefined,
-			) => Promise<NodeParameterValueType>;
+			[functionName: string]: (this: ILoadOptionsFunctions, payload: IDataObject | string | undefined) => Promise<NodeParameterValueType>;
 		};
 	};
 	webhookMethods?: {
@@ -1925,10 +1757,7 @@ export type EngineResponse<T = unknown> = {
  */
 export abstract class Node {
 	abstract description: INodeTypeDescription;
-	execute?(
-		context: IExecuteFunctions,
-		response?: EngineResponse,
-	): Promise<INodeExecutionData[][] | EngineRequest>;
+	execute?(context: IExecuteFunctions, response?: EngineResponse): Promise<INodeExecutionData[][] | EngineRequest>;
 	webhook?(context: IWebhookFunctions): Promise<IWebhookResponseData>;
 	poll?(context: IPollFunctions): Promise<INodeExecutionData[][] | null>;
 }
@@ -2060,11 +1889,7 @@ export interface INodePropertyRouting {
 }
 
 export type PostReceiveAction =
-	| ((
-			this: IExecuteSingleFunctions,
-			items: INodeExecutionData[],
-			response: IN8nHttpFullResponse,
-	  ) => Promise<INodeExecutionData[]>)
+	| ((this: IExecuteSingleFunctions, items: INodeExecutionData[], response: IN8nHttpFullResponse) => Promise<INodeExecutionData[]>)
 	| IPostReceiveBinaryData
 	| IPostReceiveFilter
 	| IPostReceiveLimit
@@ -2073,10 +1898,7 @@ export type PostReceiveAction =
 	| IPostReceiveSetKeyValue
 	| IPostReceiveSort;
 
-export type PreSendAction = (
-	this: IExecuteSingleFunctions,
-	requestOptions: IHttpRequestOptions,
-) => Promise<IHttpRequestOptions>;
+export type PreSendAction = (this: IExecuteSingleFunctions, requestOptions: IHttpRequestOptions) => Promise<IHttpRequestOptions>;
 
 export interface INodeRequestOutput {
 	maxResults?: number | string;
@@ -2163,12 +1985,30 @@ export const NodeConnectionTypes = {
 	AiTextSplitter: 'ai_textSplitter',
 	AiTool: 'ai_tool',
 	AiVectorStore: 'ai_vectorStore',
+	IntentoTranslationSupplier: 'intento_translationSupplier',
+	IntentoSegmentSupplier: 'intento_segmentSupplier',
 	Main: 'main',
 } as const;
 
 export type NodeConnectionType = (typeof NodeConnectionTypes)[keyof typeof NodeConnectionTypes];
 
 export type AINodeConnectionType = Exclude<NodeConnectionType, typeof NodeConnectionTypes.Main>;
+export type IntentoConnectionType = Exclude<
+	NodeConnectionType,
+	| typeof NodeConnectionTypes.Main
+	| typeof NodeConnectionTypes.AiAgent
+	| typeof NodeConnectionTypes.AiChain
+	| typeof NodeConnectionTypes.AiDocument
+	| typeof NodeConnectionTypes.AiEmbedding
+	| typeof NodeConnectionTypes.AiLanguageModel
+	| typeof NodeConnectionTypes.AiMemory
+	| typeof NodeConnectionTypes.AiOutputParser
+	| typeof NodeConnectionTypes.AiRetriever
+	| typeof NodeConnectionTypes.AiReranker
+	| typeof NodeConnectionTypes.AiTextSplitter
+	| typeof NodeConnectionTypes.AiTool
+	| typeof NodeConnectionTypes.AiVectorStore
+>;
 
 export const nodeConnectionTypes: NodeConnectionType[] = Object.values(NodeConnectionTypes);
 
@@ -2382,13 +2222,7 @@ export type WebhookResponseData = 'allEntries' | 'firstEntryJson' | 'firstEntryB
  *
  * streaming: Response added to runData to httpResponse and streamingEnabled set to true
  */
-export type WebhookResponseMode =
-	| 'onReceived'
-	| 'lastNode'
-	| 'responseNode'
-	| 'formPage'
-	| 'hostedChat'
-	| 'streaming';
+export type WebhookResponseMode = 'onReceived' | 'lastNode' | 'responseNode' | 'formPage' | 'hostedChat' | 'streaming';
 
 export interface INodeTypes {
 	getByName(nodeType: string): INodeType | IVersionedNodeType;
@@ -2443,17 +2277,7 @@ export interface IRun {
 	jobId?: string;
 }
 
-export type SchemaType =
-	| 'string'
-	| 'number'
-	| 'boolean'
-	| 'bigint'
-	| 'symbol'
-	| 'array'
-	| 'object'
-	| 'function'
-	| 'null'
-	| 'undefined';
+export type SchemaType = 'string' | 'number' | 'boolean' | 'bigint' | 'symbol' | 'array' | 'object' | 'function' | 'null' | 'undefined';
 
 export type Schema = { type: SchemaType; key?: string; value: string | Schema[]; path: string };
 
@@ -2840,10 +2664,7 @@ export type LogMetadata = {
 	file?: string;
 	function?: string;
 };
-export type Logger = Record<
-	Exclude<LogLevel, 'silent'>,
-	(message: string, metadata?: LogMetadata) => void
->;
+export type Logger = Record<Exclude<LogLevel, 'silent'>, (message: string, metadata?: LogMetadata) => void>;
 export type LogLocationMetadata = Pick<LogMetadata, 'file' | 'function'>;
 
 export interface IStatusCodeMessages {
@@ -3114,14 +2935,7 @@ export type ResourceMapperValue = {
 	convertFieldsToString: boolean;
 };
 
-export type FilterOperatorType =
-	| 'string'
-	| 'number'
-	| 'boolean'
-	| 'array'
-	| 'object'
-	| 'dateTime'
-	| 'any';
+export type FilterOperatorType = 'string' | 'number' | 'boolean' | 'array' | 'object' | 'dateTime' | 'any';
 
 export interface FilterOperatorValue {
 	type: FilterOperatorType;

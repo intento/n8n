@@ -84,6 +84,7 @@ jobs:
     needs: determine-build-context
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
+    timeout-minutes: 30
     strategy:
       matrix: ${{ fromJSON(needs.determine-build-context.outputs.build_matrix) }}
     outputs:
@@ -224,6 +225,12 @@ jobs:
       #   with:
       #     username: ${{ secrets.DOCKER_USERNAME }}
       #     password: ${{ secrets.DOCKER_PASSWORD }}
+      # - name: Login to Docker Hub
+      #   if: needs.determine-build-context.outputs.push_to_docker == 'true'
+      #   uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Create ECR multi-arch manifests
         run: |
@@ -251,21 +258,6 @@ jobs:
                 --tag "${ECR_BASE}/${IMAGE_NAME}:latest" \
                 "${MANIFEST_TAG}-amd64" \
                 "${MANIFEST_TAG}-arm64"
-            fi
-
-            # Also create 'latest' tag for stable releases
-            if [[ "$RELEASE_TYPE" == "stable" ]]; then
-              echo "Creating 'latest' tag for ${IMAGE_NAME}"
-              if [[ "$RELEASE_TYPE" == "branch" ]]; then
-                docker buildx imagetools create \
-                  --tag "${ECR_BASE}/${IMAGE_NAME}:latest" \
-                  "${MANIFEST_TAG}-amd64"
-              else
-                docker buildx imagetools create \
-                  --tag "${ECR_BASE}/${IMAGE_NAME}:latest" \
-                  "${MANIFEST_TAG}-amd64" \
-                  "${MANIFEST_TAG}-arm64"
-              fi
             fi
           }
 

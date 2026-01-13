@@ -11,5 +11,7 @@
 		]
 	},
 	"alias": ["remote"],
-	"subcategories": ["Helpers"]
+	"subcategories": {
+		"Core Nodes": ["Primitives"]
+	}
 }

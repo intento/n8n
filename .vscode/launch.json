@@ -25,10 +25,12 @@
 		{
 			"name": "Launch n8n with debug",
 			"program": "${workspaceFolder}/packages/cli/bin/n8n",
-			"cwd": "${workspaceFolder}/packages/cli/bin",
+			"cwd": "${workspaceFolder}/packages/cli",
+			"args": ["start"],
 			"request": "launch",
 			"skipFiles": ["<node_internals>/**"],
 			"type": "node",
+			"envFile": "${workspaceFolder}/.env",
 			"outputCapture": "std",
 			"killBehavior": "forceful"
 		},
